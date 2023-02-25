@@ -10,6 +10,8 @@ password = input('password: ')
 # Setting variables
 seen = int(0)
 flags = int(0)
+totalmails = int(0)
+noofmails = {}
 
 # Setting Period
 print('***************************************')
@@ -26,15 +28,27 @@ print('***************************************')
 
 # mainstuff
 with MailBox('outlook.office365.com').login( username, password) as mailbox:
-    for msg in mailbox.fetch():
+    for msg in mailbox.fetch(mark_seen = False):
+        sender = (msg.from_)
+        if sender in noofmails.keys():
+           nomails = int((noofmails.get(sender)))
+           nomails = nomails + 1
+           noofmails.update({ sender : nomails })
+        else:
+            noofmails[sender] = int(1)
+        totalmails = totalmails + 1
         if startdate<(msg.date).replace(tzinfo=None)<enddate:
-            if (msg.flags[0]) == ('\Seen'):
-                seen = seen + 1
-                try:
-                    if (msg.flags[1]) == ('\Flagged'):
-                        flags = flags + 1
-                except:
-                    print(' ')
+            try:
+                if (msg.flags[0]) == ('\Seen'):
+                    seen = seen + 1
+            except:
+                print('')
+            try:
+                if (msg.flags[1]) == ('\Flagged'):
+                    flags = flags + 1
+            except:
+                    print('')
         else:
             print('Please choose correct period')
-print('seen: {}, flagged: {}'.format(seen, flags))
+print(noofmails)
+print('Total Seen: {}, Total Unseen: {}, Total Flagged: {}, Total Mails: {}'.format(seen, totalmails - seen, flags, totalmails))
