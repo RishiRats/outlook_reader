@@ -30,8 +30,11 @@ with MailBox('outlook.office365.com').login( username, password) as mailbox:
         if startdate<(msg.date).replace(tzinfo=None)<enddate:
             if (msg.flags[0]) == ('\Seen'):
                 seen = seen + 1
-            else:
-                flags = flags + 1
+                try:
+                    if (msg.flags[1]) == ('\Flagged'):
+                        flags = flags + 1
+                except:
+                    print(' ')
         else:
             print('Please choose correct period')
-print('seen: {}, flags: {}'.format(seen, flags))
+print('seen: {}, flagged: {}'.format(seen, flags))
