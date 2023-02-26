@@ -1,79 +1,100 @@
 # importing libraries
-from imap_tools import MailBox, AND
+from imap_tools import MailBox
 import datetime
-from pytz import timezone
-
-# taking user's credentials
-username = input('Username: ')
-password = input('password: ')
+import pyautogui as p
+from xlwt import Workbook
 
 # Setting variables
-seen = int(0)
-flags = int(0)
-totalmails = int(0)
-noofmails = {}
+seen = 0
+flags = 0
+total_mail_count = 0
+ans = 0
+mails_dict = {}
+mail_type = {'Total': 0, 'Seen': 0, 'Flagged': 0, 'Answered': 0}
+MAIL_SERVER = 'outlook.office365.com'
 
-# Setting Period
-print('***************************************')
-try:
-    DD = int(input('Input start DD: '))
-    MM = int(input('Input start MM: '))
-    YYYY = int(input('Input start YYYY: '))
-    startdate = datetime.datetime(YYYY, MM, DD, 0, 0, 0)
 
-    nDD = int(input('\nInput end DD: '))
-    nMM = int(input('Input end MM: '))
-    nYYYY = int(input('Input end YYYY: '))
-    enddate = datetime.datetime(nYYYY, nMM, nDD, 0, 0, 0)
-except:
-    print('Please follow the given format')
-print('***************************************')
+def ask_for_date(var):
+    """Function asking for date"""
+    while True:
+        try:
+            DD = int(input(f'Enter {var} DD: '))
+            MM = int(input(f'Enter {var} MM: '))
+            YYYY = int(input(f'Enter {var} YYYY: '))
+            date = datetime.datetime(YYYY, MM, DD, 0, 0, 0)
+            return date
+        except ValueError:
+            print('Enter date in correct format')
+            pass
 
-# mainstuff
-with MailBox('outlook.office365.com').login( username, password) as mailbox:
-    for msg in mailbox.fetch(mark_seen = False):
-        test=msg.flags
-        sender = (msg.from_)
-        if sender in noofmails.keys():
-           nomails = int((noofmails.get(sender)))
-           nomails = nomails + 1
-           noofmails.update({ sender : nomails })
+
+# taking user's credentials
+while True:
+    username = 'testuser_elpida@outlook.com'  # input('Username:')
+    password = p.password(text='Enter Password:', mask='*')     # Masking users password
+
+    # Checking credentials
+    print('Verifying credentials. Please wait...')
+    try:
+        login = MailBox(MAIL_SERVER).login(username=username, password=password)
+        login.logout()
+        print('Verified.')
+        break
+    except:
+        print('Enter valid credentials')
+
+
+# Ask for start and end date
+start_data = ask_for_date('Start')
+end_date = ask_for_date('End')
+
+# Logins to given credentials and read
+print('Fetching inbox details...')
+with MailBox(MAIL_SERVER).login(username, password) as mailbox:
+    # Bye default inbox isfetched
+    for msg in mailbox.fetch(mark_seen=False):
+        sender = msg.from_
+        if sender in mails_dict.keys():
+            # increments email count from one sender
+            mails_dict[sender]['Total'] += 1
         else:
-            noofmails[sender] = int(1)
+            mails_dict[sender] = mail_type
+        total_mail_count = total_mail_count + 1
 
-        totalmails = totalmails + 1
-        if startdate<(msg.date).replace(tzinfo=None)<enddate:
+        # Shows emails only for mentioned time period
+        if start_data < msg.date.replace(tzinfo=None) < end_date:
             try:
-                if (msg.flags[0]) == ('\Seen'):
-                    seen = seen + 1
+                # Checks if mail is seen, answered or flagged
+                if msg.flags[0] == "\Seen":
+                    mails_dict[sender]['Seen'] += 1
+                elif msg.flags[0] == '\Answered' or (msg.flags[1]) == '\Answered':
+                    mails_dict[sender]['Answered'] += 1
+                elif msg.flags[0] == '\Flagged' or msg.flags[1] == '\Flagged' or msg.flags[2] == '\Flagged':
+                    mails_dict[sender]['Flagged'] += 1
             except:
-                print(' ')
-            try:
-                if (msg.flags[0]) == ('\Flagged'):
-                    flags = flags + 1
-            except:
-                    print(' ')
-            try:
-                if (msg.flags[1]) == ('\Flagged'):
-                    flags = flags + 1
-            except:
-                print(' ')
-            try:
-                if (msg.flags[2]) == ('\Flagged'):
-                    flags = flags + 1
-            except:
-                print(' ')
-            try:
-                if (msg.flags[0]) == ('\Answered'):
-                    ans = ans + 1
-            except:
-                print(' ')
-            try:
-                if (msg.flags[1]) == ('\Answered'):
-                    ans = ans + 1
-            except:
-                print(' ')
-        else:
-            print('Please choose correct period')
-print(noofmails)
-print('Seen: {}, Unseen: {}, Answered: {}, Flagged: {}, Total Received Mails: {}'.format(seen, totalmails - seen, ans, flags, totalmails))
+                pass
+
+# print('{}\nSeen: {}, Unseen: {}, Answered: {}, Flagged: {}, Total Received Mails: {}'.format(mails_dict, seen,
+#                                                                                              total_mail_count - seen, ans,
+#                                                                                              flags, total_mail_count))
+
+# Opens excel workbook
+wb = Workbook()
+SHEET_NAME = 'Email Records'
+BOOK_NAME = 'Email_Records.xls'
+email_record = wb.add_sheet(SHEET_NAME)
+# Naming columns
+email_record.write(0, 0, 'Emails')
+column_name = list(mail_type.keys())
+for i in range(len(column_name)):
+    email_record.write(0, i+1, str(column_name[i]))
+# Entering data obtained into excel
+emails = list(mails_dict.keys())
+for i in range(len(emails)):
+    email_record.write(i+1, 0, emails[i])
+    email_values = list(mails_dict[emails[i]].values())
+    for j in range(len(email_values)):
+        email_record.write(i+1, j+1, email_values[j])
+# Saves excel sheet
+wb.save(BOOK_NAME)
+print('Saved details in {}'.format(BOOK_NAME))
