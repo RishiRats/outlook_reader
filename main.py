@@ -4,6 +4,8 @@ import datetime
 import pytz
 import pyautogui as p
 from xlwt import Workbook
+import sys
+from boxing import boxing
 
 # Setting variables
 seen = 0
@@ -16,8 +18,11 @@ mails_dict = {}
 MAIL_SERVER = 'outlook.office365.com'
 timezone = pytz.timezone("Asia/Kolkata")
 
-print('''*\t\t\t\tMade by AVANA\t\t\t*
-*\t\t\t\t   Email Book Keeper \t\t*''')
+# print('''*\t\t\t\tMade by AVANA\t\t\t*
+# *\t\t\t\t   Email Book Keeper \t\t*''')
+box_text = boxing("  MADE BY AVANA\nEmail Book-Keeper", style='double')
+print(box_text, file=sys.stdout)
+
 
 def ask_for_date(var):
     """Function asking for date"""
